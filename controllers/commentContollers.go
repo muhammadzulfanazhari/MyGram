@@ -57,7 +57,7 @@ func CreateComment(c *gin.Context) {
 	})
 }
 
-func GetComments(c *gin.Context) {
+func GetComments2(c *gin.Context) {
 	db := database.GetDB()
 	userData := c.MustGet("userData").(jwt.MapClaims)
 	userDataId := userData["id"].(float64)
@@ -140,4 +140,69 @@ func DeleteComment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Your comment has been successfully deleted",
 	})
+}
+
+func GetComments(c *gin.Context) {
+	db := database.GetDB()
+	userData := c.MustGet("userData").(jwt.MapClaims)
+	userDataId := userData["id"].(float64)
+
+	User := models.User{}
+	err := db.Debug().Where("id", uint(userDataId)).First(&User).Error
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error": "user not found",
+		})
+		return
+	}
+
+	Comments := []models.Comment{}
+
+	err = db.Debug().Where("user_id", uint(userDataId)).Find(&Comments).Error
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error": "Comments are not found",
+		})
+		return
+	}
+
+	resComments := []models.ResComment{}
+	resUser := models.ResUser{
+		ID:       User.ID,
+		Username: User.Username,
+		Email:    User.Email,
+	}
+
+	resComment := models.ResComment{}
+	for _, comment := range Comments {
+		resComment.ID = comment.ID
+		resComment.Message = comment.Message
+		resComment.PhotoID = comment.PhotoID
+		resComment.UserID = comment.UserID
+		resComment.CreatedAt = comment.CreatedAt
+		resComment.UpdatedAt = comment.UpdatedAt
+		resComment.User = &resUser
+
+		Photo := models.Photo{}
+		err = db.Debug().Where("id", comment.PhotoID).First(&Photo).Error
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+				"error": "Photo is not found",
+			})
+			return
+		}
+		resPhoto := models.ResPhoto{
+			ID:        Photo.ID,
+			Title:     Photo.Title,
+			Caption:   Photo.Caption,
+			Photo_url: Photo.Photo_url,
+			UserID:    Photo.UserID,
+		}
+
+		resComment.Photo = &resPhoto
+
+		resComments = append(resComments, resComment)
+	}
+
+	c.JSON(http.StatusOK, resComments)
 }

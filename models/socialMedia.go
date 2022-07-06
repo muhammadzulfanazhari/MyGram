@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/asaskevich/govalidator"
 	"gorm.io/gorm"
 )
@@ -14,11 +16,13 @@ type SocialMedia struct {
 }
 
 type ResSocialMedia struct {
-	GormModel
-	Name           string   `json:"name"`
-	SocialMediaUrl string   `json:"social_media_url"`
-	UserID         uint     `json:"user_id"`
-	User           *ResUser `json:"User"`
+	ID             uint       `json:"id,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
+	UpdatedAt      *time.Time `json:"updated_at,omitemtpy"`
+	Name           string     `json:"name"`
+	SocialMediaUrl string     `json:"social_media_url"`
+	UserID         uint       `json:"user_id"`
+	User           *ResUser   `json:"User"`
 }
 
 func (s *SocialMedia) BeforeCreate(tx *gorm.DB) (err error) {
