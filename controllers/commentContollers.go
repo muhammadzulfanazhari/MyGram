@@ -9,7 +9,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func CreateComment(c *gin.Context) {
@@ -55,29 +54,6 @@ func CreateComment(c *gin.Context) {
 		"user_id":    Comment.UserID,
 		"created_at": Comment.CreatedAt,
 	})
-}
-
-func GetComments2(c *gin.Context) {
-	db := database.GetDB()
-	userData := c.MustGet("userData").(jwt.MapClaims)
-	userDataId := userData["id"].(float64)
-	comments := []models.Comment{}
-	err := db.Preload("User", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("ID", "email", "username", "created_at", "updated_at")
-	}).Preload("Photo", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("ID", "title", "caption", "photo_url", "user_id", "created_at", "updated_at")
-	}).Where("user_id = ?", uint(userDataId)).Find(&comments).Error
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": http.StatusInternalServerError,
-			"data": gin.H{
-				"error": err.Error(),
-				"msg":   "Failed to Get Comment List",
-			},
-		})
-		return
-	}
-	c.JSON(http.StatusOK, comments)
 }
 
 func UpdateComment(c *gin.Context) {
