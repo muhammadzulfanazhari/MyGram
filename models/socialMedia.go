@@ -13,6 +13,14 @@ type SocialMedia struct {
 	User           *User  `json:"User,omitempty"`
 }
 
+type ResSocialMedia struct {
+	GormModel
+	Name           string   `json:"name"`
+	SocialMediaUrl string   `json:"social_media_url"`
+	UserID         uint     `json:"user_id"`
+	User           *ResUser `json:"User"`
+}
+
 func (s *SocialMedia) BeforeCreate(tx *gorm.DB) (err error) {
 	_, errCreate := govalidator.ValidateStruct(s)
 

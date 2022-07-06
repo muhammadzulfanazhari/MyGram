@@ -9,7 +9,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func CreateSocialMedia(c *gin.Context) {
@@ -45,27 +44,6 @@ func CreateSocialMedia(c *gin.Context) {
 		"user_id":          SocialMedia.UserID,
 		"created_at":       SocialMedia.CreatedAt,
 	})
-}
-
-func GetSocialMedias(c *gin.Context) {
-	db := database.GetDB()
-	userData := c.MustGet("userData").(jwt.MapClaims)
-	userId := userData["id"].(float64)
-	socialMedias := []models.SocialMedia{}
-	err := db.Preload("User", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("ID", "username", "created_at", "updated_at")
-	}).Where("user_id = ?", uint(userId)).Find(&socialMedias).Error
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": http.StatusInternalServerError,
-			"data": gin.H{
-				"error": err.Error(),
-				"msg":   "Failed to Get Social Media List",
-			},
-		})
-		return
-	}
-	c.JSON(http.StatusOK, socialMedias)
 }
 
 func UpdateSocialMedia(c *gin.Context) {
@@ -128,5 +106,53 @@ func DeleteSocialMedia(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Your social media has been successfully deleted",
+	})
+}
+
+func GetSocialMedias(c *gin.Context) {
+	db := database.GetDB()
+	userData := c.MustGet("userData").(jwt.MapClaims)
+	userDataId := userData["id"].(float64)
+
+	User := models.User{}
+	err := db.Debug().Where("id", uint(userDataId)).First(&User).Error
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error": "user not found",
+		})
+		return
+	}
+
+	SocialMedias := []models.SocialMedia{}
+
+	err = db.Debug().Where("user_id", uint(userDataId)).Find(&SocialMedias).Error
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error": "Social medias are not found",
+		})
+		return
+	}
+
+	resSocialMedias := []models.ResSocialMedia{}
+	resUser := models.ResUser{
+		Username: User.Username,
+		Email:    User.Email,
+	}
+
+	resSocialMedia := models.ResSocialMedia{}
+	for _, socialMedia := range SocialMedias {
+		resSocialMedia.ID = socialMedia.ID
+		resSocialMedia.Name = socialMedia.Name
+		resSocialMedia.SocialMediaUrl = socialMedia.SocialMediaUrl
+		resSocialMedia.UserID = socialMedia.UserID
+		resSocialMedia.CreatedAt = socialMedia.CreatedAt
+		resSocialMedia.UpdatedAt = socialMedia.UpdatedAt
+		resSocialMedia.User = &resUser
+
+		resSocialMedias = append(resSocialMedias, resSocialMedia)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"social_medias": resSocialMedias,
 	})
 }
