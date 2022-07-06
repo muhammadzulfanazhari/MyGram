@@ -9,7 +9,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func CreatePhoto(c *gin.Context) {
@@ -46,37 +45,6 @@ func CreatePhoto(c *gin.Context) {
 		"user_id":    Photo.UserID,
 		"created_at": Photo.CreatedAt,
 	})
-}
-
-func GetPhotos(c *gin.Context) {
-	db := database.GetDB()
-	userData := c.MustGet("userData").(jwt.MapClaims)
-	userDataId := userData["id"].(float64)
-
-	photos := []models.Photo{}
-	err := db.Preload("User", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("ID", "email", "username", "created_at", "updated_at")
-	}).Where("user_id = ?", uint(userDataId)).Find(&photos).Error
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": http.StatusInternalServerError,
-			"data": gin.H{
-				"error": err.Error(),
-				"msg":   "Failed to Get Photo List",
-			},
-		})
-		return
-	}
-	// for _, photo := range photos {
-	// 	fmt.Println("id:", photo.ID)
-	// 	fmt.Println("title:", photo.Title)
-	// 	fmt.Println("user_name:", photo.User.Username)
-	// }
-
-	// photoJSON := func() string {
-
-	// }
-	c.JSON(http.StatusOK, photos)
 }
 
 func UpdatePhoto(c *gin.Context) {
@@ -141,4 +109,51 @@ func DeletePhoto(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Your photo has been successfully deleted",
 	})
+}
+
+func GetPhotos(c *gin.Context) {
+	db := database.GetDB()
+	userData := c.MustGet("userData").(jwt.MapClaims)
+	userDataId := userData["id"].(float64)
+
+	User := models.User{}
+	err := db.Debug().Where("id", uint(userDataId)).First(&User).Error
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error": "user not found",
+		})
+		return
+	}
+
+	Photos := []models.Photo{}
+
+	err = db.Debug().Where("user_id", uint(userDataId)).Find(&Photos).Error
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error": "Photos are not found",
+		})
+		return
+	}
+
+	resPhotos := []models.ResPhoto{}
+	resUser := models.ResUser{
+		Username: User.Username,
+		Email:    User.Email,
+	}
+
+	resPhoto := models.ResPhoto{}
+	for _, photo := range Photos {
+		resPhoto.ID = photo.ID
+		resPhoto.Title = photo.Title
+		resPhoto.Caption = photo.Caption
+		resPhoto.Photo_url = photo.Photo_url
+		resPhoto.UserID = photo.UserID
+		resPhoto.CreatedAt = photo.CreatedAt
+		resPhoto.UpdatedAt = photo.UpdatedAt
+		resPhoto.User = &resUser
+
+		resPhotos = append(resPhotos, resPhoto)
+	}
+
+	c.JSON(http.StatusOK, resPhotos)
 }

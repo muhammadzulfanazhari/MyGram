@@ -10,8 +10,17 @@ type Photo struct {
 	Title     string `gorm:"not null" json:"title" form:"title" valid:"required~Title of your photo is required"`
 	Caption   string `json:"caption"`
 	Photo_url string `gorm:"not null" json:"photo_url" form:"photo_url" valid:"required~URL of your photo is required"`
-	UserID    uint
+	UserID    uint   `json:"user_id"`
 	User      *User
+}
+
+type ResPhoto struct {
+	GormModel
+	Title     string   `json:"title"`
+	Caption   string   `json:"caption"`
+	Photo_url string   `json:"photo_url"`
+	UserID    uint     `json:"user_id"`
+	User      *ResUser `json:"user"`
 }
 
 func (p *Photo) BeforeCreate(tx *gorm.DB) (err error) {
