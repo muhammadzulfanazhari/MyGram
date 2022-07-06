@@ -135,6 +135,7 @@ func GetSocialMedias(c *gin.Context) {
 
 	resSocialMedias := []models.ResSocialMedia{}
 	resUser := models.ResUser{
+		ID:       User.ID,
 		Username: User.Username,
 		Email:    User.Email,
 	}
